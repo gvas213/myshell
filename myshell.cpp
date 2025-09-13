@@ -8,27 +8,12 @@
 using namespace std;
 
 
-
-// int main() {
-
-//     char* args[2];
-
-//     string pwd = "pwd";
-
-//     args [0] = (char*)pwd.c_str();
-//     args [1] = NULL;
-
-//     if(execvp (args[0], args) == -1) {
-//         perror("execvp()\n");
-//     }
-
-//     return 0;
-// }
-
-static void execute(char* command) {
-
-
+static void execute(char* args[]) {
     pid_t pid = fork();
+
+    if (strcmp(args[0], "exit") == 0 || strcmp(args[0], "myexit") == 0) {
+        exit(EXIT_SUCCESS);
+    }
 
     if(pid == 0) {
         if(execvp(args[0], args) == -1) {
@@ -42,47 +27,44 @@ static void execute(char* command) {
     wait(NULL);
 }
 
+int count_args(const string& str) {
+    if(str.empty()) {
+        return 0;
+    }
+
+    stringstream ss(str);
+    string command;
+    int arg_counter = 0;
+
+    while(ss >> command) {
+        arg_counter++;
+    }
+
+    return arg_counter;
+}
+
 int main() {
 
 
     while(1) {
         cout << "m% ";
+        string line;
+        string command;
+        char* args[256];
         
-        
-
         getline(cin, line);
-
-        for(int i = 0; i < line.length(); i++) {
-
-        }
-
-        // ss >> command;  //parse command
-        // args[0] = (char*)command.c_str();
-
-        // if(getline(cin, flag)) {
-        //     for(int i = 1; i <= flag.length(); i++) {
-        //         args[i] = (char*)
-        //     }
-        // }else {
-        //     args[1] = NULL;
-        // }
+        int arg_counter = count_args(line);
+        stringstream ss(line);
         
 
-
-
-        if(command == "exit" || command == "myexit") {
-            exit(EXIT_SUCCESS);
+        int i;
+        for(i = 0; i < arg_counter; i++) {
+            ss >> command;
+            args[i] = (char*)command.c_str();
         }
 
-        // 
-        // if(flag != "\0") {
-        //     args[1] = (char*)flag.c_str();
-        //     args[2] = NULL;
-        // }else {
-        //     args[1] = NULL;
-        // }
-
-         execute(command);
+        args[i+1] = NULL;
+        execute(args);
 
     }
 
