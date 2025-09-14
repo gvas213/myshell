@@ -1,5 +1,7 @@
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <cstring>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,26 +9,42 @@
 #include <sys/wait.h>
 using namespace std;
 
-
+//function to fork process and run command
 static void execute(char* args[]) {
-    pid_t pid = fork();
 
+    if(!args || !args[0]) { //check if cmd was entered
+        return;
+    }
+
+    //check if user exits
     if (strcmp(args[0], "exit") == 0 || strcmp(args[0], "myexit") == 0) {
         exit(EXIT_SUCCESS);
     }
 
+    //fork process
+    pid_t pid = fork();
+    if(pid == -1) {
+        perror("fork()\n");
+        return;
+    }
+
+    //create child process to execute command
     if(pid == 0) {
-        if(execvp(args[0], args) == -1) {
+        if(execvp(args[0], args) == -1) {   //execution
             perror("execvp()\n");
             exit(EXIT_FAILURE);
         }
-    }else if (pid < 0){
-        perror("fork()\n");
+    }else {     //wait for process to finish before returning
+        int status = 0;
+        if(waitpid(pid, &status, 0) == -1) {
+            perror("waitpid()");
+        }
     }
-
-    wait(NULL);
 }
 
+//function to count the number of arguments user entered 
+//including multiple flags
+//returns count
 int count_args(const string& str) {
     if(str.empty()) {
         return 0;
@@ -49,22 +67,41 @@ int main() {
     while(1) {
         cout << "m% ";
         string line;
-        string command;
-        char* args[256];
-        
-        getline(cin, line);
-        int arg_counter = count_args(line);
-        stringstream ss(line);
-        
 
-        int i;
-        for(i = 0; i < arg_counter; i++) {
-            ss >> command;
-            args[i] = (char*)command.c_str();
+        if(!getline(cin, line)) {   //get whole command
+            cout << endl;
+            break;
         }
 
-        args[i+1] = NULL;
-        execute(args);
+        if(line.empty()) {
+            continue;
+        }
+
+        int arg_counter = count_args(line);
+
+        if(arg_counter == 0) {
+            continue;
+        }
+    
+        stringstream ss(line);
+        string command;
+        char* args[256];
+
+        //parse command line into args[] 
+        //includes flags
+        int i = 0;
+        for(; i < arg_counter; i++) {
+            ss >> command;
+            args[i] = strdup(command.c_str());
+        }
+        args[i] = NULL;   //add null terminator to command
+
+        execute(args);  //call to run command
+
+        //free allocated memory
+        for(int j = 0; j < arg_counter; j++) {
+            free(args[j]);
+        }
 
     }
 
